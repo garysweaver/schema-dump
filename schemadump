@@ -1,0 +1,149 @@
+#!/usr/bin/ruby -w
+# requires you to have previously run:
+# gem install dbi
+
+require 'rubygems'
+require 'dbi'
+require 'trollop'
+
+class Object
+  # from Rails
+  def blank?
+    respond_to?(:empty?) ? empty? : !self
+  end
+  
+  def prettify
+    to_s
+  end
+  
+  # this is for -i to write output in SQL format. using prepared statements when possible
+  def sql_valuify
+    nil? ? 'NULL' : "'#{to_s.gsub(/\\/, '\&\&').gsub(/'/, "''").gsub(/\t/, "\\t").gsub(/\r/, "\\r").gsub(/\n/, "\\n")}'"
+  end
+end
+
+# prettify by Yahuda Katz
+# http://stackoverflow.com/questions/1077346/ruby-round-float-to-int-if-whole-number
+class Float
+  def prettify
+    to_i == self ? to_i : self
+  end
+end
+
+module SchemaDump
+  class TableData
+    attr_accessor :name, :columns, :row_hash
+  end
+end
+
+ORACLE_TABLE_NAMES_QUERY = 'select TABLE_NAME from USER_TABLES'
+EXAMPLE_TABLE_NAMES_QUERY = ORACLE_TABLE_NAMES_QUERY
+
+opts = Trollop::options do
+  version "Schema Dump 1.0 (c) 2010-2011 Gary S. Weaver"
+  banner <<-EOS
+  
+  Dumps some data from database to a text file.
+
+  Examples:
+  
+  MySQL:
+
+     schemadump -r DBI:Mysql:TESTDB:localhost -u jdoe -p secret
+
+  Oracle:
+
+     schemadump -r DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD -u jdoe -p secret
+  
+  Usage:
+  
+         schemadump [options]
+         
+  where [options] are:
+  
+  EOS
+  opt :driver_url, "DBI driver URL. e.g. DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD", :short => 'r', :type => String
+  opt :user, "database username. e.g. jdoe", :short => 'u', :type => String
+  opt :password, "database password. e.g. secret", :short => 'p', :type => String
+  opt :table_names_query, "SQL query to use to get full listing of tables. e.g. \"#{EXAMPLE_TABLE_NAMES_QUERY}\"", :short => 't', :type => String
+  opt :quiet, "quiet. does not output progress indicator", :short => 'q', :default => false
+  opt :debug, "outputs debugging information", :short => 'd', :default => false
+end
+
+Trollop::die :driver_url, "must provide a DBI driver URL. e.g. DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD" unless opts[:driver_url]
+Trollop::die :user, "must provide a database username. e.g. jdoe" unless opts[:user]
+Trollop::die :password, "must provide a atabase password. e.g. secret" unless opts[:password]
+Trollop::die :quiet, "cannot run quietly in debug mode. Remove debug option" if opts[:quiet] && opts[:debug]
+
+puts "DBI version: #{DBI::VERSION}" if opts[:debug]
+
+if opts[:driver_url].upcase.match(/^DBI:OCI8/)
+  # oracle
+  opts[:table_names_query] = ORACLE_TABLE_NAMES_QUERY if opts[:table_names_query].blank?
+else
+  Trollop::die :table_names_query, "Please specify a table names query for this database." if opts[:table_names_query].blank?
+end
+
+if opts[:debug]
+  opts.each do |key,val|
+    puts "#{key}: #{val}"
+  end
+end
+
+begin
+  dbh = DBI.connect(opts[:driver_url], opts[:user], opts[:password])
+  if opts[:debug]
+    # Note: dbh.trace fails in DBI 0.4.5: "the trace module has been removed until it actually works."
+    # so we don't attempt to call it here.
+    
+    # get server version string and display it
+    row = dbh.select_one('select version from v$instance')
+    puts "Server version: #{row[0]}"
+    puts ''
+    puts opts[:table_names_query]
+  end
+
+  table_name_rows = nil  
+  begin
+    table_name_rows = dbh.select_all(opts[:table_names_query])
+  rescue DBI::DatabaseError => e
+    if !(opts[:quiet])
+      puts "An error occurred"
+      puts "Error code: #{e.err}"
+      puts "Error message: #{e.errstr}"
+    end
+    dbh.disconnect if dbh
+    dbh = DBI.connect(opts[:driver_url], opts[:user], opts[:password])
+    table_name_rows = dbh.select_all(opts[:table_names_query])
+  end
+      
+  table_name_rows.each do |table_name_row|
+    table = table_name_row[0]
+    data_query = "select * from #{table}"
+    rows = nil
+    begin
+      rows = dbh.select_all(data_query)
+    rescue DBI::DatabaseError => e
+      if !(opts[:quiet])
+        puts "An error occurred"
+        puts "Error code: #{e.err}"
+        puts "Error message: #{e.errstr}"
+      end
+      dbh.disconnect if dbh
+      dbh = DBI.connect(opts[:driver_url], opts[:user], opts[:password])
+      table_name_rows = dbh.select_all(opts[:table_names_query])
+    end    
+    rows.each do |row|
+      puts "#{table}: #{row.collect{|x| x.prettify.sql_valuify}.join(', ')}"
+    end
+  end
+rescue DBI::DatabaseError => e
+  if !(opts[:quiet])
+    puts "An error occurred, even after reconnect"
+    puts "Error code: #{e.err}"
+    puts "Error message: #{e.errstr}"
+  end
+ensure
+  # disconnect from server
+  dbh.disconnect if dbh
+end

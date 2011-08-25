@@ -1,0 +1,66 @@
+= Schema Dump
+
+A ruby script (for *nix) to dump a database to a text file in a format suitable for doing line diffs from two exports. It may be slow. Also, memory and storage/filesize limits may keep this script from completing.
+
+== Installation
+
+Install Git and Ruby.
+
+Install RBI and Trollop:
+
+  gem install dbi
+  gem install trollop
+
+Clone this project.
+
+  cd ~
+  git clone http://github.com/garysweaver/schema-dump.git
+
+Then add the following to your .bash_profile, or whatever you want:
+
+  #schema-dump
+  export PATH=$PATH:~/schema-dump
+
+Restart Terminal.app or whatever, and then test by doing:
+
+  schemadump -h
+	
+== Usage
+  
+         schemadump [options]
+         
+  where [options] are:
+  
+                      --driver-url, -r <s>:   DBI driver URL. e.g. DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD
+                            --user, -u <s>:   database username. e.g. jdoe
+                        --password, -p <s>:   database password. e.g. secret
+                               --quiet, -q:   quiet. does not output progress indicator
+                               --debug, -d:   outputs debugging information
+                             --version, -v:   Print version and exit
+                                --help, -h:   Show this message
+
+== Examples
+
+=== MySQL
+
+   schemadump -r DBI:Mysql:TESTDB:localhost -u jdoe -p secret
+
+=== Oracle
+
+   schemadump -r DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD -u jdoe -p secret
+
+== Sample Output
+
+  $ schemadump -r DBI:OCI8://db.acme.org:1234/ACMETEST -u jdoe -p secret
+
+  SAMPLE_TABLE_A: '123', 'Joe'
+  SAMPLE_TABLE_B: '123', '234'
+  SAMPLE_TABLE_B: '123', '235'
+  SAMPLE_TABLE_C: '234', 'Kia', 'Sorento', '345'
+  SAMPLE_TABLE_C: '235', 'Kia', 'Sportage', '346'
+  SAMPLE_TABLE_D: '345', 'Red'
+  SAMPLE_TABLE_D: '346', 'Green'
+
+== License
+
+Copyright (c) 2011 Gary S. Weaver, released under the {MIT license}[http://github.com/garysweaver/schema-dump/blob/master/LICENSE].
