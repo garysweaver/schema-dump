@@ -26,18 +26,22 @@ Restart Terminal.app or whatever, and then test by doing:
   schemadump -h
 	
 == Usage
-  
-         schemadump [options]
-         
-  where [options] are:
-  
-                      --driver-url, -r <s>:   DBI driver URL. e.g. DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD
-                            --user, -u <s>:   database username. e.g. jdoe
-                        --password, -p <s>:   database password. e.g. secret
-                               --quiet, -q:   quiet. does not output progress indicator
-                               --debug, -d:   outputs debugging information
-                             --version, -v:   Print version and exit
-                                --help, -h:   Show this message
+
+          schemadump [options]
+          
+   where [options] are:
+   
+          --driver-url, -r <s>:   DBI driver URL. e.g.
+                                  DBI:OCI8://db.acme.org:1234/ACMETEST.WORLD
+                --user, -u <s>:   database username. e.g. jdoe
+            --password, -p <s>:   database password. e.g. secret
+   --table-names-query, -t <s>:   SQL query to use to get full listing of
+                                  tables. e.g. "select TABLE_NAME from
+                                  USER_TABLES"
+                   --quiet, -q:   quiet. does not output progress indicator
+                   --debug, -d:   outputs debugging information
+                 --version, -v:   Print version and exit
+                    --help, -h:   Show this message
 
 == Examples
 
