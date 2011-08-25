@@ -43,7 +43,7 @@ opts = Trollop::options do
   version "Schema Dump 1.0 (c) 2010-2011 Gary S. Weaver"
   banner <<-EOS
   
-  Dumps some data from database to a text file.
+  Dumps all data from all accessible tables in a database/schema to the output stream in a format suitable for diffing.
 
   Examples:
   

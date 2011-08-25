@@ -1,6 +1,6 @@
 = Schema Dump
 
-A ruby script (for *nix) to dump a database to a text file in a format suitable for doing line diffs from two exports. It may be slow. Also, memory and storage/filesize limits may keep this script from completing.
+Dumps all data from all accessible tables in a database/schema to the output stream in a format suitable for diffing.
 
 == Installation
 
