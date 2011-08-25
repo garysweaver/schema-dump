@@ -65,6 +65,20 @@ Restart Terminal.app or whatever, and then test by doing:
   SAMPLE_TABLE_D: '345', 'Red'
   SAMPLE_TABLE_D: '346', 'Green'
 
+== Diff Schemas
+
+By using schemadump, directing output to file, then sorting, you can diff the two sorted dumps.
+
+Example:
+
+  $ schemadump -r DBI:OCI8://db.acme.org:1234/ACMETEST -u jdoe -p secret > test
+  $ sort test > test-sorted
+  $ schemadump -r DBI:OCI8://db.acme.org:3456/ACMEPROD -u jdoe -p secret > prod
+  $ sort prod > prod-sorted
+  $ diff test-sorted prod-sorted
+
+By sorting via the sort command, CLOBs, etc. can be sorted after they've been converted to string and outputted. You could do this by getting the column names and doing order by on all the columns in the script, but I think this is just as easy, and may be faster.
+
 == License
 
 Copyright (c) 2011 Gary S. Weaver, released under the {MIT license}[http://github.com/garysweaver/schema-dump/blob/master/LICENSE].
